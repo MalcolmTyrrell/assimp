@@ -168,6 +168,7 @@ corresponding preprocessor flag to selectively disable formats.
 #ifndef ASSIMP_BUILD_NO_NDO_IMPORTER
 #include "AssetLib/NDO/NDOLoader.h"
 #endif
+#define ASSIMP_BUILD_NO_IFC_IMPORTER
 #ifndef ASSIMP_BUILD_NO_IFC_IMPORTER
 #include "AssetLib/IFC/IFCLoader.h"
 #endif
@@ -201,6 +202,9 @@ corresponding preprocessor flag to selectively disable formats.
 #ifndef ASSIMP_BUILD_NO_M3D_IMPORTER
 #include "AssetLib/M3D/M3DImporter.h"
 #endif
+#ifndef ASSIMP_BUILD_NO_EXCHANGE_IMPORTER
+#include "AssetLib/Exchange/ExchangeLoader.hpp"
+#endif
 
 namespace Assimp {
 
@@ -221,6 +225,9 @@ void GetImporterInstanceList(std::vector<BaseImporter *> &out) {
     // (register_new_importers_here)
     // ----------------------------------------------------------------------------
     out.reserve(64);
+#if (!defined ASSIMP_BUILD_NO_EXCHANGE_IMPORTER)
+    out.push_back(new ExchangeImporter());
+#endif
 #if (!defined ASSIMP_BUILD_NO_X_IMPORTER)
     out.push_back(new XFileImporter());
 #endif
