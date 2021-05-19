@@ -168,7 +168,6 @@ corresponding preprocessor flag to selectively disable formats.
 #ifndef ASSIMP_BUILD_NO_NDO_IMPORTER
 #include "AssetLib/NDO/NDOLoader.h"
 #endif
-#define ASSIMP_BUILD_NO_IFC_IMPORTER
 #ifndef ASSIMP_BUILD_NO_IFC_IMPORTER
 #include "AssetLib/IFC/IFCLoader.h"
 #endif
