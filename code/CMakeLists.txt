@@ -296,6 +296,16 @@ SET(ASSIMP_EXPORTER_SRCS "")
 SET(ASSIMP_EXPORTERS_ENABLED "") # list of enabled exporters
 SET(ASSIMP_EXPORTERS_DISABLED "") # disabled exporters list (used to print)
 
+INCLUDE_DIRECTORIES("X:/HOOPS_Exchange_Publish_2020_SP2_U2/include")
+ADD_ASSIMP_IMPORTER( Exchange
+   AssetLib/Exchange/ExchangeLoader.hpp
+   AssetLib/Exchange/ExchangeLoader.cpp
+   AssetLib/Exchange/ExchangeMaterialLoader.hpp
+   AssetLib/Exchange/ExchangeMaterialLoader.cpp
+   AssetLib/Exchange/ExchangeMeshFactory.hpp
+   AssetLib/Exchange/ExchangeMeshFactory.cpp
+)
+
 ADD_ASSIMP_IMPORTER( AMF
   AssetLib/AMF/AMFImporter.hpp
   AssetLib/AMF/AMFImporter_Node.hpp
