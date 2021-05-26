@@ -1,4 +1,3 @@
-#define NOMINMAX
 #include "ExchangeMeshFactory.hpp"
 
 
@@ -6,16 +5,17 @@
 #include "assimp/scene.h"
 
 namespace {
-    using IndexPair = std::pair<unsigned int, unsigned int>;
+using VertexNormalTextureIndices = std::tuple<unsigned int, unsigned int, unsigned int>;
 }
 
 namespace std {
 template <>
-struct hash<IndexPair> {
-    std::size_t operator()(IndexPair const& pr) const noexcept {
+struct hash<VertexNormalTextureIndices> {
+    std::size_t operator()(VertexNormalTextureIndices const &indices) const noexcept {
         std::size_t hash = 23;
-        hash = hash * 31 + pr.first;
-        hash = hash * 31 + pr.second;
+        hash = hash * 31 + std::get<0>(indices);
+        hash = hash * 31 + std::get<1>(indices);
+        hash = hash * 31 + std::get<2>(indices);
         return hash;
     }
 };
@@ -23,61 +23,69 @@ struct hash<IndexPair> {
 
 namespace {
 
+struct MeshData {
+    A3DGraphStyleData style_data;
+    std::vector<aiFace> assimp_faces;
+    std::vector<aiVector3D> assimp_vertices, assimp_normals, assimp_texcoords;
+    std::unordered_map<VertexNormalTextureIndices, unsigned int> exchange_vn_to_assimp_index_map;
+};
 
-unsigned int getAssimpVertexIndex(IndexPair const &exchange_indices, std::vector<aiVector3D> &vertex_list, std::vector<aiVector3D> &normal_list, std::unordered_map<IndexPair, unsigned int> &index_map, std::shared_ptr<ts3d::Tess3DInstance> const &tess3d) {
-    auto const it = index_map.find(exchange_indices);
-    if (std::end(index_map) != it) {
+
+unsigned int getAssimpVertexIndex(VertexNormalTextureIndices const &exchange_indices, MeshData &mesh_data, std::shared_ptr<ts3d::Tess3DInstance> const &tess3d) {
+    auto const it = mesh_data.exchange_vn_to_assimp_index_map.find(exchange_indices);
+    if (std::end(mesh_data.exchange_vn_to_assimp_index_map) != it) {
         return it->second;
     }
 
+    auto const vertex_index = std::get<0>(exchange_indices);
     aiVector3D const new_vertex(
-            { static_cast<float>(tess3d->coords()[exchange_indices.first + 0]),
-                    static_cast<float>(tess3d->coords()[exchange_indices.first + 1]),
-                    static_cast<float>(tess3d->coords()[exchange_indices.first + 2]) });
-    vertex_list.emplace_back(new_vertex);
+            { static_cast<float>(tess3d->coords()[vertex_index + 0]),
+                    static_cast<float>(tess3d->coords()[vertex_index + 1]),
+                    static_cast<float>(tess3d->coords()[vertex_index + 2]) });
+    mesh_data.assimp_vertices.emplace_back(new_vertex);
 
+    auto const normal_index = std::get<1>(exchange_indices);
     aiVector3D const new_normal(
-            { static_cast<float>(tess3d->normals()[exchange_indices.second + 0]),
-                    static_cast<float>(tess3d->normals()[exchange_indices.second + 1]),
-                    static_cast<float>(tess3d->normals()[exchange_indices.second + 2]) });
-    normal_list.emplace_back(new_normal);
+            { static_cast<float>(tess3d->normals()[normal_index + 0]),
+                    static_cast<float>(tess3d->normals()[normal_index + 1]),
+                    static_cast<float>(tess3d->normals()[normal_index + 2]) });
+    mesh_data.assimp_normals.emplace_back(new_normal);
 
-    assert(normal_list.size() == vertex_list.size());
+    auto const texture_index = std::get<2>(exchange_indices);
+    if (texture_index < tess3d->texCoordsSize()) {
+        aiVector3D const new_texcoord(
+                { static_cast<float>(tess3d->texCoords()[texture_index + 0]),
+                        static_cast<float>(tess3d->texCoords()[texture_index + 1]),
+                        0.f });
+        mesh_data.assimp_texcoords.emplace_back(new_texcoord);
+    }
 
-    return index_map[exchange_indices] = static_cast<unsigned int>(vertex_list.size() - 1);
+    return mesh_data.exchange_vn_to_assimp_index_map[exchange_indices] = static_cast<unsigned int>(mesh_data.assimp_vertices.size() - 1);
 }
 
 void addFace(std::shared_ptr<ts3d::Tess3DInstance> const &tess3d,
         unsigned int &topo_face_idx,
-        std::unordered_map<IndexPair, unsigned int> &exchange_vn_to_assimp_index_map,
-        std::vector<aiFace> &assimp_faces,
-        std::vector<aiVector3D> &assimp_vertex_list,
-        std::vector<aiVector3D> &assimp_normal_list ) {
+        MeshData &mesh_data ) {
 
     auto const topo_face_mesh = tess3d->getIndexMeshForFace(topo_face_idx);
     auto const n_vertices = topo_face_mesh.vertices().size();
     auto const n_triangles = n_vertices / 3;
 
-    assimp_faces.reserve(assimp_faces.size() + n_triangles);
-
+    mesh_data.assimp_faces.reserve(mesh_data.assimp_faces.size() + n_triangles);
+    auto const has_tex_coords = (0 != tess3d->texCoordsSize());
     for (auto tri_idx = 0u; tri_idx < n_triangles; ++tri_idx) {
         aiFace new_face;
         new_face.mNumIndices = 3u;
         new_face.mIndices = new unsigned int[3];
 
         auto const offset = tri_idx * 3;
-        auto vertex_a_index = topo_face_mesh.vertices()[offset + 0];
-        auto normal_a_index = topo_face_mesh.normals()[offset + 0];
-        new_face.mIndices[0] = getAssimpVertexIndex(std::make_pair(vertex_a_index, normal_a_index), assimp_vertex_list, assimp_normal_list, exchange_vn_to_assimp_index_map, tess3d);
-
-        auto vertex_b_index = topo_face_mesh.vertices()[offset + 1];
-        auto normal_b_index = topo_face_mesh.normals()[offset + 1];
-        new_face.mIndices[1] = getAssimpVertexIndex(std::make_pair(vertex_b_index, normal_b_index), assimp_vertex_list, assimp_normal_list, exchange_vn_to_assimp_index_map, tess3d);
-
-        auto vertex_c_index = topo_face_mesh.vertices()[offset + 2];
-        auto normal_c_index = topo_face_mesh.normals()[offset + 2];
-        new_face.mIndices[2] = getAssimpVertexIndex(std::make_pair(vertex_c_index, normal_c_index), assimp_vertex_list, assimp_normal_list, exchange_vn_to_assimp_index_map, tess3d);
-        assimp_faces.emplace_back(new_face);
+        for (auto vertex_idx = 0u; vertex_idx < 3u; ++vertex_idx) {
+            auto const vertex_index = topo_face_mesh.vertices()[offset + vertex_idx];
+            auto const normal_index = topo_face_mesh.normals()[offset + vertex_idx];
+            auto const tex_index = has_tex_coords ? topo_face_mesh.textures()[offset + vertex_idx] : 0u;
+            new_face.mIndices[vertex_idx] = getAssimpVertexIndex(std::make_tuple(vertex_index, normal_index, tex_index), mesh_data, tess3d);
+        }
+        mesh_data.assimp_faces.emplace_back(new_face);
     }
 }
 } // namespace
@@ -121,18 +129,9 @@ std::set<unsigned int> Assimp::ExchangeMeshFactory::getMeshIndices(ts3d::Instanc
     styled_mesh.mMeshIndices = mesh_indices;
     styled_mesh.mStyleData = ri_style;
     mExistingMeshes[ri].push_back(styled_mesh);
-
+    
     return mesh_indices;
 }
-
-namespace {
-struct MeshData {
-    A3DGraphStyleData style_data;
-    std::vector<aiFace> assimp_faces;
-    std::vector<aiVector3D> assimp_vertices, assimp_normals;
-    std::unordered_map<IndexPair, unsigned int> exchange_vn_to_assimp_index_map;
-};
-} // namespace
 
 std::vector<aiMesh*> Assimp::ExchangeMeshFactory::createMeshes(ts3d::InstancePath const &ri_instance_path) {
     ts3d::RepresentationItemInstance ri_instance(ri_instance_path);
@@ -159,7 +158,7 @@ std::vector<aiMesh*> Assimp::ExchangeMeshFactory::createMeshes(ts3d::InstancePat
             it = std::end(mesh_data) - 1;
         }
 
-        addFace(tess3d, topo_face_idx, it->exchange_vn_to_assimp_index_map, it->assimp_faces, it->assimp_vertices, it->assimp_normals);
+        addFace(tess3d, topo_face_idx, *it);
     }
 
     std::vector<aiMesh *> meshes;

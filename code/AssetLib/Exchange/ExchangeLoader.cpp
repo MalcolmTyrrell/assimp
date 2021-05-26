@@ -1,13 +1,9 @@
-#define NOMINMAX
-#include "ExchangeLoader.hpp"
-#include "ExchangeMeshFactory.hpp"
-
-#include <iostream>
-#define INITIALIZE_A3D_API
 #include <A3DSDKIncludes.h>
 #include <ExchangeToolkit.h>
 
-#include <cassert>
+#include "ExchangeLoader.hpp"
+#include "ExchangeLoaderConfig.hpp"
+#include "ExchangeMeshFactory.hpp"
 #include "assimp/scene.h"
 
 namespace {
@@ -85,12 +81,12 @@ bool populateMaterialMetadata(A3DEntity *entity, aiMetadata *md) {
 
     auto found_metadata = false;
     if (material_property_data.m_pcMaterialName) {
-        md->Add(Assimp::ExchangeImporter::METADATA_KEY_MATERIAL_NAME, material_property_data.m_pcMaterialName);
+        md->Add(Assimp::ExchangeLoader::METADATA_KEY_MATERIAL_NAME, material_property_data.m_pcMaterialName);
         found_metadata = true;
     }
 
     if (-1 != material_property_data.m_dDensity) {
-        md->Add(Assimp::ExchangeImporter::METADATA_KEY_MATERIAL_DENSITY, material_property_data.m_dDensity);
+        md->Add(Assimp::ExchangeLoader::METADATA_KEY_MATERIAL_DENSITY, material_property_data.m_dDensity);
         found_metadata = true;
     }
 
@@ -186,7 +182,7 @@ void populateMetadata(A3DEntity *entity, aiNode *n) {
 
     auto material_md = new aiMetadata();
     if (populateMaterialMetadata(entity, material_md)) {
-        md->Add(Assimp::ExchangeImporter::METADATA_KEY_MATERIAL, material_md);
+        md->Add(Assimp::ExchangeLoader::METADATA_KEY_MATERIAL, material_md);
     } else {
         delete material_md;
         material_md = nullptr;
@@ -290,63 +286,20 @@ aiNode *createProductOccurrenceNode(ts3d::InstancePath instance_path, std::share
 
 }
 
-Assimp::ExchangeImporter::InitializeStatus Assimp::ExchangeImporter::mInitializeStatus = Assimp::ExchangeImporter::InitializeStatus::FAILURE_NOT_INITIALIZED;
-std::string const Assimp::ExchangeImporter::METADATA_KEY_MATERIAL = "METADATA_KEY_MATERIAL";
-std::string const Assimp::ExchangeImporter::METADATA_KEY_MATERIAL_DENSITY = "METADATA_KEY_MATERIAL_DENSITY";
-std::string const Assimp::ExchangeImporter::METADATA_KEY_MATERIAL_NAME = "METADATA_KEY_MATERIAL_NAME";
-std::string const Assimp::ExchangeImporter::METADATA_KEY_UNIT_FACTOR = "METADATA_KEY_UNIT_FACTOR";
-std::string const Assimp::ExchangeImporter::METADATA_KEY_FORMAT = "METADATA_KEY_FORMAT"; // value - one of A3DEModellerType
+std::string const Assimp::ExchangeLoader::METADATA_KEY_MATERIAL = "METADATA_KEY_MATERIAL";
+std::string const Assimp::ExchangeLoader::METADATA_KEY_MATERIAL_DENSITY = "METADATA_KEY_MATERIAL_DENSITY";
+std::string const Assimp::ExchangeLoader::METADATA_KEY_MATERIAL_NAME = "METADATA_KEY_MATERIAL_NAME";
+std::string const Assimp::ExchangeLoader::METADATA_KEY_UNIT_FACTOR = "METADATA_KEY_UNIT_FACTOR";
+std::string const Assimp::ExchangeLoader::METADATA_KEY_FORMAT = "METADATA_KEY_FORMAT"; // value - one of A3DEModellerType
 
-// static
-Assimp::ExchangeImporter::InitializeStatus Assimp::ExchangeImporter::Initialize(std::string const &exchange_library_path, std::string const &hoops_license) {
-    auto const loaded = A3DSDKLoadLibraryA(exchange_library_path.c_str());
-    if (!loaded) {
-        return mInitializeStatus = InitializeStatus::FAILURE_LOAD_LIBRARIES;
-    }
-
-    auto const lic_status = A3DLicPutUnifiedLicense(hoops_license.c_str());
-    if (A3D_SUCCESS != lic_status) {
-        A3DSDKUnloadLibrary();
-        return mInitializeStatus = InitializeStatus::FAILURE_LICENSE_INVALID;
-    }
-
-    auto const version_status = A3DDllInitialize(A3D_DLL_MAJORVERSION, A3D_DLL_MINORVERSION);
-    if (A3D_SUCCESS != version_status) {
-        A3DSDKUnloadLibrary();
-        return mInitializeStatus = InitializeStatus::FAILURE_LIBRARY_VERSION_MISMATCH;
-    }
-
-    return mInitializeStatus = InitializeStatus::OK;
-}
- 
-Assimp::ExchangeImporter::ExchangeImporter() {
-    // temporary --
-    if (mInitializeStatus != InitializeStatus::OK) {
-        assert(InitializeStatus::OK == Initialize("X:/HOOPS_Exchange_Publish_2020_SP2_U2/bin/win64", HOOPS_LICENSE));
-    }
-
-    A3D_INITIALIZE_DATA(A3DRWParamsLoadData, mLoadParameters);
-	mLoadParameters.m_sGeneral.m_bReadSolids = true;
-    mLoadParameters.m_sGeneral.m_bReadSurfaces = true;
-    mLoadParameters.m_sGeneral.m_bReadAttributes = true;
-    mLoadParameters.m_sGeneral.m_bReadActiveFilter = true;
-    mLoadParameters.m_sGeneral.m_eReadingMode2D3D = kA3DRead_3D;
-    mLoadParameters.m_sGeneral.m_eReadGeomTessMode = kA3DReadGeomAndTess;
-    mLoadParameters.m_sGeneral.m_eDefaultUnit = kA3DUnitUnknown;
-    mLoadParameters.m_sTessellation.m_eTessellationLevelOfDetail = kA3DTessLODMedium;
-    mLoadParameters.m_sAssembly.m_bUseRootDirectory = true;
-    mLoadParameters.m_sMultiEntries.m_bLoadDefault = true;
+Assimp::ExchangeLoader::ExchangeLoader() {
 }
 
-Assimp::ExchangeImporter::~ExchangeImporter() {
+Assimp::ExchangeLoader::~ExchangeLoader() {
 
 }
 
-bool Assimp::ExchangeImporter::CanRead(const std::string& pFile, IOSystem*, bool) const {
-    if (mInitializeStatus != InitializeStatus::OK) {
-        return false;
-    }
-
+bool Assimp::ExchangeLoader::CanRead(const std::string& pFile, IOSystem*, bool) const {
     static std::set<std::string> const extensions = {
         "asm", // SolidEdge assembly
         "catpart", // catia part
@@ -373,7 +326,7 @@ bool Assimp::ExchangeImporter::CanRead(const std::string& pFile, IOSystem*, bool
 
     return false;
 }
-const aiImporterDesc* Assimp::ExchangeImporter::GetInfo() const {
+const aiImporterDesc* Assimp::ExchangeLoader::GetInfo() const {
     static const aiImporterDesc desc = {
         "HOOPS Exchange Multi-Format Importer",
         "",
@@ -389,27 +342,47 @@ const aiImporterDesc* Assimp::ExchangeImporter::GetInfo() const {
     return &desc;
 }
 
-void Assimp::ExchangeImporter::InternReadFile(const std::string& pFile, aiScene* pScene, IOSystem*) {
+void Assimp::ExchangeLoader::InternReadFile(const std::string& pFile, aiScene* pScene, IOSystem*) {
+
+    // Implicit Exchange Initialization
+    // This block handles the case where the consumer of the Exchange Assimp Loader failed to
+    // previously make an explicit call to ExchangeLoaderConfig::instance().Initialize()
+    {
+        if (ExchangeLoaderConfig::instance().GetInitializationStatus() == ExchangeLoaderConfig::InitializeStatus::FAILURE_NOT_INITIALIZED) {
+            ExchangeLoaderConfig::instance().Initialize();
+        }
+
+        auto const initialize_status = ExchangeLoaderConfig::instance().GetInitializationStatus();
+        if (initialize_status != ExchangeLoaderConfig::InitializeStatus::OK) {
+            switch (initialize_status) {
+            case ExchangeLoaderConfig::InitializeStatus::FAILURE_LIBRARY_VERSION_MISMATCH:
+                throw new DeadlyImportError("Library version mismatch");
+                break;
+            case ExchangeLoaderConfig::InitializeStatus::FAILURE_LICENSE_INVALID:
+                throw new DeadlyImportError("Invalid license");
+                break;
+            case ExchangeLoaderConfig::InitializeStatus::FAILURE_LOAD_LIBRARIES:
+                throw new DeadlyImportError("Libraries failed to load");
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    // End of implicit initialization
+
+    // Load the requested file
     A3DAsmModelFile *model_file = nullptr;
-    auto const load_status = A3DAsmModelFileLoadFromFile(pFile.c_str(), &mLoadParameters, &model_file);
+    auto const load_status = A3DAsmModelFileLoadFromFile(pFile.c_str(), &ExchangeLoaderConfig::instance().GetLoadParams(), &model_file);
     if (A3D_SUCCESS != load_status && A3D_LOAD_MISSING_COMPONENTS != load_status) {
         std::stringstream ss;
         ss << "Failure code: (" << load_status << ") - \"" << A3DMiscGetErrorMsg(load_status) << "\"";
         throw new DeadlyImportError(ss.str());
     }
 
-    InstancePath instance_path({ model_file });
-    auto mesh_factory = std::make_shared<ExchangeMeshFactory>(pScene);
-
-    //std::unordered_map<A3DEntity *, aiNode *> part_nodes;
-    //auto const unique_parts = ts3d::getUniqueLeafEntities(model_file, kA3DTypeAsmPartDefinition);
-    //for (auto const part : unique_parts) {
-    //    auto const node = createPartDefinitionNode(part, pScene);
-    //    part_nodes[part] = node;
-    //}
-
     pScene->mRootNode = new aiNode();
     pScene->mRootNode->mName.Set(ts3d::A3DRootBaseWrapper(model_file)->m_pcName);
+
     ts3d::A3DAsmModelFileWrapper model_file_data(model_file);
     populateMetadata(model_file, pScene->mRootNode);
     aiMetadata *md = pScene->mRootNode->mMetaData;
@@ -421,6 +394,8 @@ void Assimp::ExchangeImporter::InternReadFile(const std::string& pFile, aiScene*
     md->Add(METADATA_KEY_UNIT_FACTOR, unit_factor);
     md->Add(METADATA_KEY_FORMAT, model_file_data->m_eModellerType);
 
+    InstancePath instance_path({ model_file });
+    auto mesh_factory = std::make_shared<ExchangeMeshFactory>(pScene);
     std::vector<aiNode *> child_nodes;
     for(auto po : ts3d::getChildren(model_file, kA3DTypeAsmProductOccurrence)) {
         instance_path.push_back(po);

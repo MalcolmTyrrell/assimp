@@ -1,11 +1,11 @@
-#define NOMINMAX
 #include "ExchangeMaterialLoader.hpp"
-
-#include <iostream>
+#include "ExchangeLoaderConfig.hpp"
 #include <A3DSDKIncludes.h>
 #include <ExchangeToolkit.h>
 
 #include <cassert>
+#include <fstream>
+#include <sstream>
 #include "assimp/scene.h"
 
 aiColor3D Assimp::ExchangeMaterialLoader::DEFAULT_COLOR(1.0, 0.0, 0.0);
@@ -23,22 +23,91 @@ aiColor4D toColor4D(A3DGraphRgbColorData const &rgb, double const &a) {
     return aiColor4D(static_cast<float>(rgb.m_dRed), static_cast<float>(rgb.m_dGreen), static_cast<float>(rgb.m_dBlue), static_cast<float>(a));
 }
 
-void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureDefinitionData const &texture_def_data) {
+void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureDefinitionData const &texture_def_data, int const texture_n) {
     if (nullptr == m) {
         return;
     }
+
+    aiTextureType texture_type = aiTextureType_NONE;
+    auto const mapping_attributes = texture_def_data.m_uiMappingAttributes;
+    if (mapping_attributes & kA3DTextureMappingDiffuse) {
+        texture_type = aiTextureType_DIFFUSE;
+    }
+    if (mapping_attributes & kA3DTextureMappingSphericalReflection) {
+        // unsupported
+    }
+    if (mapping_attributes & kA3DTextureMappingCubicalReflection) {
+        // unsuppported 
+    }
+    if (mapping_attributes & kA3DTextureMappingNormal) {
+        texture_type = aiTextureType_NORMALS;
+    }
+    if (mapping_attributes & kA3DTextureMappingMetalness) {
+        texture_type = aiTextureType_METALNESS;
+    }
+    if (mapping_attributes & kA3DTextureMappingRoughness) {
+        texture_type = aiTextureType_DIFFUSE_ROUGHNESS;
+    }
+    if (mapping_attributes & kA3DTextureMappingOcclusion) {
+        texture_type = aiTextureType_AMBIENT_OCCLUSION;
+    }
+
     ts3d::A3DMiscCartesianTransformationWrapper cart_d(texture_def_data.m_pOperatorTransfo);
     ts3d::A3DGraphTextureTransformationWrapper tex_transf_d(texture_def_data.m_pTextureTransfo);
     auto const alpha_test_reference = texture_def_data.m_dAlphaTestReference;
-    auto const mapping_op = texture_def_data.m_eMappingOperator;
-    auto const mapping_type = texture_def_data.m_eMappingType;
-    auto const texture_func = texture_def_data.m_eTextureFunction;
-    auto const texture_wrapping_s = texture_def_data.m_eTextureWrappingModeS;
-    auto const texture_wrapping_t = texture_def_data.m_eTextureWrappingModeT;
+
+
+    auto mapping_mode = aiTextureMapping_UV;
+    switch (texture_def_data.m_eMappingOperator) {
+    default:
+    case kA3DTextureMappingOperatorUnknown:
+        break;
+    case kA3DTextureMappingOperatorPlanar:
+        mapping_mode = aiTextureMapping_PLANE;
+        break;
+    case kA3DTextureMappingOperatorCylindrical:
+        mapping_mode = aiTextureMapping_CYLINDER;
+        break;
+    case kA3DTextureMappingOperatorSpherical:
+        mapping_mode = aiTextureMapping_SPHERE;
+        break;
+    case kA3DTextureMappingOperatorCubical:
+        mapping_mode = aiTextureMapping_BOX;
+        break;
+    }
+    m->AddProperty(&mapping_mode, 1, AI_MATKEY_MAPPING(texture_type, texture_n));
+
+    auto wrap_s = aiTextureMapMode_Wrap;
+    switch (texture_def_data.m_eTextureWrappingModeS) {
+    default:
+    case kA3DTextureWrappingModeUnknown:
+    case kA3DTextureWrappingModeRepeat:
+        wrap_s = aiTextureMapMode_Wrap;
+        break;
+    case kA3DTextureWrappingModeClampToBorder:
+        wrap_s = aiTextureMapMode_Clamp;
+        break;
+    }
+    m->AddProperty(&wrap_s, 1, AI_MATKEY_MAPPINGMODE_U(texture_type, texture_n));
+
+    auto wrap_t = aiTextureMapMode_Wrap;
+    switch (texture_def_data.m_eTextureWrappingModeT) {
+    default:
+    case kA3DTextureWrappingModeUnknown:
+    case kA3DTextureWrappingModeRepeat:
+        wrap_t = aiTextureMapMode_Wrap;
+        break;
+    case kA3DTextureWrappingModeClampToBorder:
+        wrap_t = aiTextureMapMode_Clamp;
+        break;
+    }
+    m->AddProperty(&wrap_t, 1, AI_MATKEY_MAPPINGMODE_V(texture_type, texture_n));
 
     auto const applying_mode = texture_def_data.m_ucTextureApplyingMode;
     if (applying_mode & kA3DTextureApplyingModeAlphaTest) {
         // Alpha test enabled
+        aiTextureFlags f = aiTextureFlags_UseAlpha;
+        m->AddProperty(&f, 1, AI_MATKEY_TEXFLAGS(texture_type, texture_n));
     }
     if (applying_mode & kA3DTextureApplyingModeLighting) {
         // Lighting enabled
@@ -48,22 +117,6 @@ void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureDefinitionData const &
     }
     if (applying_mode & kA3DTextureApplyingModeVertexColor) {
         // Use vertex color (combine texture with one-color-per-vertex)
-    }
-
-    auto const mapping_attributes = texture_def_data.m_uiMappingAttributes;
-    if (mapping_attributes & kA3DTextureMappingDiffuse) {
-    }
-    if (mapping_attributes & kA3DTextureMappingSphericalReflection) {
-    }
-    if (mapping_attributes & kA3DTextureMappingCubicalReflection) {
-    }
-    if (mapping_attributes & kA3DTextureMappingNormal) {
-    }
-    if (mapping_attributes & kA3DTextureMappingMetallness) {
-    }
-    if (mapping_attributes & kA3DTextureMappingRoughness) {
-    }
-    if (mapping_attributes & kA3DTextureMappingOcclusion) {
     }
 
     if (texture_def_data.m_uiMappingAttributesIntensitySize) {
@@ -77,11 +130,28 @@ void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureDefinitionData const &
     }
 
     if (texture_def_data.m_pTextureTransfo) {
-        //j["texture_transfo"] = *tex_transf_d.operator->();
+        ts3d::A3DGraphTextureTransformationWrapper tex_xform_data(texture_def_data.m_pTextureTransfo);
+        if (tex_xform_data->m_bIs2D) {
+            auto const &matrix = tex_xform_data->m_dMatrix;
+            aiUVTransform uv_xform;
+            uv_xform.mTranslation.x = static_cast<float>(matrix[3]);
+            uv_xform.mTranslation.y = static_cast<float>(matrix[7]);
+            
+            uv_xform.mScaling.x = static_cast<float>(sqrt(matrix[0] * matrix[0] + matrix[4] * matrix[4] + matrix[8] * matrix[8]));
+            uv_xform.mScaling.y = static_cast<float>(sqrt(matrix[1] * matrix[1] + matrix[5] * matrix[5] + matrix[9] * matrix[9]));
+
+            uv_xform.mRotation = static_cast<float>(atan2(matrix[4], matrix[0]));
+
+            // unused -- how to encode this?
+            tex_xform_data->m_bTextureFlipS;
+            tex_xform_data->m_bTextureFlipT;
+
+            m->AddProperty(&uv_xform, 1, AI_MATKEY_UVTRANSFORM(texture_type, texture_n));
+        }
     }
 
     if (texture_def_data.m_pOperatorTransfo) {
-        //j["operator_transfo"] = *cart_d.operator->();
+        // unused
     }
 
     A3DGraphPictureData picture_data;
@@ -89,7 +159,48 @@ void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureDefinitionData const &
     if (!CheckResult(A3DGlobalGetGraphPictureData(texture_def_data.m_uiPictureIndex, &picture_data))) {
         return;
     }
-    //j["picture"] = picture_data;
+
+    std::string extension;
+    switch (picture_data.m_eFormat) {
+    case kA3DPicturePng:
+        extension = "png";
+        break;
+    case kA3DPictureJpg:
+        extension = "jpg";
+        break;
+    case kA3DPictureBmp:
+        extension = "bmp";
+        break;
+    case kA3DPictureBitmapRgbByte:
+        extension = "rgb";
+        break;
+    case kA3DPictureBitmapRgbaByte:
+        extension = "rgba";
+        break;
+    case kA3DPictureBitmapGreyByte:
+        extension = "grey";
+        break;
+    case kA3DPictureBitmapGreyaByte:
+        extension = "greya";
+        break;
+    }
+
+    std::stringstream fn_stream;
+    fn_stream << Assimp::ExchangeLoaderConfig::instance().GetTextureFolder();
+#ifdef _MSC_VER
+    fn_stream << "\\";
+#else
+    fn_stream << "/";
+#endif
+    fn_stream << "texture" << texture_def_data.m_uiPictureIndex << "." << extension;
+
+    if (auto fptr = fopen(fn_stream.str().c_str(), "wb")) {
+        fwrite(picture_data.m_pucBinaryData, sizeof(A3DUns8), picture_data.m_uiSize, fptr);
+        fclose(fptr);
+    }
+    aiString s;
+    s.Set(fn_stream.str());
+    m->AddProperty(&s, AI_MATKEY_TEXTURE(texture_type, texture_n));
 }
 
 void populateAssimpMaterial(aiMaterial *m, A3DGraphMaterialData const &material_data) {
@@ -121,7 +232,7 @@ void populateAssimpMaterial(aiMaterial *m, A3DGraphMaterialData const &material_
     m->AddProperty(&shininess, 1, AI_MATKEY_SHININESS);
 }
 
-void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureApplicationData const &texture_app_data) {
+void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureApplicationData const &texture_app_data, int texture_n) {
     if (nullptr == m) {
         return;
     }
@@ -131,7 +242,7 @@ void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureApplicationData const 
     if (!CheckResult(A3DGlobalGetGraphTextureDefinitionData(texture_app_data.m_uiTextureDefinitionIndex, &texture_def_data))) {
         return;
     }
-    populateAssimpMaterial(m, texture_def_data);
+    populateAssimpMaterial(m, texture_def_data, texture_n);
 
     A3DGraphMaterialData material_data;
     A3D_INITIALIZE_DATA(A3DGraphMaterialData, material_data);
@@ -145,49 +256,47 @@ void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureApplicationData const 
         return;
     }
 
-    if (!material) {
-        return;
-    }
+    if (material) {
+        ts3d::A3DRootBaseWrapper root_base_d(material);
+        if (root_base_d->m_pcName) {
+            aiString material_name(root_base_d->m_pcName);
+            m->AddProperty(&material_name, AI_MATKEY_NAME);
+        }
 
-    ts3d::A3DRootBaseWrapper root_base_d(material);
-    if (root_base_d->m_pcName) {
-        aiString material_name(root_base_d->m_pcName);
-        m->AddProperty(&material_name, AI_MATKEY_NAME);
-    }
-
-    auto attributes = ts3d::toVector(root_base_d->m_ppAttributes, root_base_d->m_uiSize);
-    for (auto attribute : attributes) {
-        ts3d::A3DMiscAttributeWrapper attrib_d(attribute);
-        auto const title = attrib_d->m_pcTitle ? std::string(attrib_d->m_pcTitle) : std::string();
-        auto const single_attribs = ts3d::toVector(attrib_d->m_asSingleAttributesData, attrib_d->m_uiSize);
-        for (auto const &single_attrib : single_attribs) {
-            switch (single_attrib.m_eType) {
-            case kA3DModellerAttributeTypeInt:
-                if (title == "AlphaMode") {
-                    auto const alpha_mode = *reinterpret_cast<A3DInt32 *>(single_attrib.m_pcData);
-                    m->AddProperty(&alpha_mode, 1, "$mat.AlphaMode");
+        auto attributes = ts3d::toVector(root_base_d->m_ppAttributes, root_base_d->m_uiSize);
+        for (auto attribute : attributes) {
+            ts3d::A3DMiscAttributeWrapper attrib_d(attribute);
+            auto const title = attrib_d->m_pcTitle ? std::string(attrib_d->m_pcTitle) : std::string();
+            auto const single_attribs = ts3d::toVector(attrib_d->m_asSingleAttributesData, attrib_d->m_uiSize);
+            for (auto const &single_attrib : single_attribs) {
+                switch (single_attrib.m_eType) {
+                case kA3DModellerAttributeTypeInt:
+                    if (title == kA3DPBRAttributeNameAlphaMode) {
+                        auto const alpha_mode = *reinterpret_cast<A3DInt32 *>(single_attrib.m_pcData);
+                        m->AddProperty(&alpha_mode, 1, "$mat.AlphaMode");
+                    }
+                    break;
+                case kA3DModellerAttributeTypeReal:
+                    if (title == kA3DPBRAttributeNameAlphaMode) {
+                        auto const alpha_cut_off = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
+                        m->AddProperty(&alpha_cut_off, 1, "$mat.AlphaCutOff");
+                    } else if (title == kA3DPBRAttributeNameMetallicFactor) {
+                        auto const metallic_factor = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
+                        m->AddProperty(&metallic_factor, 1, "$mat.MetallicFactor");
+                    } else if (title == kA3DPBRAttributeNameNormalTextureFactor) {
+                        auto const normal_texture_factor = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
+                        m->AddProperty(&normal_texture_factor, 1, "$mat.NormalTextureFactor");
+                    } else if (title == kA3DPBRAttributeNameOcclusionTextureFactor) {
+                        auto const occlusion_texture_factor = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
+                        m->AddProperty(&occlusion_texture_factor, 1, "$mat.OcclusionTextureFactor");
+                    } else if (title == kA3DPBRAttributeNameRoughnessFactor) {
+                        auto const roughness_factor = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
+                        m->AddProperty(&roughness_factor, 1, "$mat.RoughnessFactor");
+                    }
+                    break;
+                default:
+                    break;
                 }
-                break;
-            case kA3DModellerAttributeTypeReal:
-                if (title == "AlphaCutOff") {
-                    auto const alpha_cut_off = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
-                    m->AddProperty(&alpha_cut_off, 1, "$mat.AlphaCutOff");
-                } else if (title == "MetallicFactor") {
-                    auto const metallic_factor = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
-                    m->AddProperty(&metallic_factor, 1, "$mat.MetallicFactor");
-                } else if (title == "NormalTextureFactor") {
-                    auto const normal_texture_factor = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
-                    m->AddProperty(&normal_texture_factor, 1, "$mat.NormalTextureFactor");
-                } else if (title == "OcclusionTextureFactor") {
-                    auto const occlusion_texture_factor = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
-                    m->AddProperty(&occlusion_texture_factor, 1, "$mat.OcclusionTextureFactor");
-                } else if (title == "RoughnessFactor") {
-                    auto const roughness_factor = *reinterpret_cast<A3DDouble *>(single_attrib.m_pcData);
-                    m->AddProperty(&roughness_factor, 1, "$mat.RoughnessFactor");
-                }
-                break;
-            default:
-                break;
             }
         }
     }
@@ -198,7 +307,7 @@ void populateAssimpMaterial(aiMaterial *m, A3DGraphTextureApplicationData const 
         if (!CheckResult(A3DGlobalGetGraphTextureApplicationData(texture_app_data.m_uiNextTextureApplicationIndex, &next_texture_app_data))) {
             return;
         }
-        populateAssimpMaterial(m, next_texture_app_data);
+        populateAssimpMaterial(m, next_texture_app_data, texture_n + 1);
         A3DGlobalGetGraphTextureApplicationData(A3D_DEFAULT_MATERIAL_INDEX, &next_texture_app_data);
     }
 }
@@ -217,7 +326,7 @@ aiMaterial *computeAssimpMaterial(A3DGraphStyleData const &style_data) {
                 delete m;
                 return nullptr;
             }
-            populateAssimpMaterial(m, texture_app_data);
+            populateAssimpMaterial(m, texture_app_data, 0);
             A3DGlobalGetGraphTextureApplicationData(A3D_DEFAULT_MATERIAL_INDEX, &texture_app_data);
         } else {
             A3DGraphMaterialData material_data;

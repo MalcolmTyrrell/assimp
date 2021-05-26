@@ -1,6 +1,7 @@
 #ifndef AI_EXCHANGELOADERCONFIG_H_INCLUDED
 #define AI_EXCHANGELOADERCONFIG_H_INCLUDED
 
+#include <assimp/types.h>
 #include <string>
 #include "A3DSDKIncludes.h"
 
@@ -10,7 +11,7 @@ namespace Assimp {
 // Defaults are set for all fields in this class *except* for the
 // ExchangeLibraryFolder. This must be set explicitly. If left unset
 // the OS will use the default dynamic library search path (pwd, PATH)
-class ExchangeLoaderConfig {
+class ASSIMP_API ExchangeLoaderConfig {
 public:
     static ExchangeLoaderConfig &instance(void);
 
