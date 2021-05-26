@@ -225,7 +225,7 @@ void GetImporterInstanceList(std::vector<BaseImporter *> &out) {
     // ----------------------------------------------------------------------------
     out.reserve(64);
 #if (!defined ASSIMP_BUILD_NO_EXCHANGE_IMPORTER)
-    out.push_back(new ExchangeImporter());
+    out.push_back(new ExchangeLoader());
 #endif
 #if (!defined ASSIMP_BUILD_NO_X_IMPORTER)
     out.push_back(new XFileImporter());
