@@ -9,7 +9,8 @@ Assimp::ExchangeLoaderConfig& Assimp::ExchangeLoaderConfig::instance(void) {
 
 Assimp::ExchangeLoaderConfig::ExchangeLoaderConfig(void)
  : mInitializeStatus(InitializeStatus::FAILURE_NOT_INITIALIZED),
-    mLoadParameters(GetDefaultLoadParams()) {
+    mLoadParameters(GetDefaultLoadParams()),
+    mFileExtensions(GetDefaultFileExtensionSet()) {
     mTextureFolder = getenv("TMP");
     if (mTextureFolder.empty()) {
         mTextureFolder = getenv("TEMP");
@@ -50,7 +51,7 @@ Assimp::ExchangeLoaderConfig::InitializeStatus Assimp::ExchangeLoaderConfig::Get
 }
 
 // static
-A3DRWParamsLoadData Assimp::ExchangeLoaderConfig::GetDefaultLoadParams(void) {
+A3DRWParamsLoadData const &Assimp::ExchangeLoaderConfig::GetDefaultLoadParams(void) {
     static A3DRWParamsLoadData default_load_params;
     static auto initialized = false;
     if (!initialized) {
@@ -92,4 +93,36 @@ std::string const& Assimp::ExchangeLoaderConfig::GetTextureFolder(void) const {
 
 void Assimp::ExchangeLoaderConfig::SetTextureFolder(std::string const& folder) {
     mTextureFolder = folder;
+}
+
+// static
+Assimp::ExchangeLoaderConfig::StringSet const &Assimp::ExchangeLoaderConfig::GetDefaultFileExtensionSet(void) {
+    static StringSet const extensions = {
+        "asm", // SolidEdge assembly
+        "catpart", // catia part
+        "catproduct", // catia assembly
+        "ifc",
+        "iam", // inventor
+        "ipt", // inventor
+        "jt",
+        "par", // SolidEdge part
+        "prc", // exchange std
+        "prt", // nx
+        "sat", // acis text
+        "sab", // acis binary
+        "sldprt", // solidworks part
+        "sldasm", // solidworks assembly
+        "step", // step part or assembly
+        "stp", // step part or assembly
+        "u3d"
+    };
+    return extensions;
+}
+
+Assimp::ExchangeLoaderConfig::StringSet const& Assimp::ExchangeLoaderConfig::GetFileExtensionSet(void) const {
+    return mFileExtensions;
+}
+
+void Assimp::ExchangeLoaderConfig::SetFileExtensionSet(StringSet const& extensions) {
+    mFileExtensions = extensions;
 }

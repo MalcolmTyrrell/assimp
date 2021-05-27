@@ -2,6 +2,7 @@
 #define AI_EXCHANGELOADERCONFIG_H_INCLUDED
 
 #include <assimp/types.h>
+#include <set>
 #include <string>
 #include "A3DSDKIncludes.h"
 
@@ -30,7 +31,7 @@ public:
     InitializeStatus GetInitializationStatus(void) const;
 
     // Returns a reasonable set of default values for loading parameters
-    static A3DRWParamsLoadData GetDefaultLoadParams(void);
+    static A3DRWParamsLoadData const &GetDefaultLoadParams(void);
 
     // Gets the current load parameters. Initially these are set to the defaults (above)
     A3DRWParamsLoadData const &GetLoadParams(void) const;
@@ -47,6 +48,10 @@ public:
     // Set the texture folder. This is where extracted texture files will be written
     void SetTextureFolder(std::string const &folder);
 
+    using StringSet = std::set<std::string>;
+    static StringSet const &GetDefaultFileExtensionSet(void);
+    StringSet const &GetFileExtensionSet(void) const;
+    void SetFileExtensionSet(StringSet const &extensions);
 
 private:
     ExchangeLoaderConfig(void);
@@ -54,6 +59,7 @@ private:
     std::string mExchangeLibraryFolder;
     std::string mTextureFolder;
     A3DRWParamsLoadData mLoadParameters;
+    StringSet mFileExtensions;
 };
 
 } // end of namespace Assimp

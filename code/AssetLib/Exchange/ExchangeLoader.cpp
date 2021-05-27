@@ -300,27 +300,9 @@ Assimp::ExchangeLoader::~ExchangeLoader() {
 }
 
 bool Assimp::ExchangeLoader::CanRead(const std::string& pFile, IOSystem*, bool) const {
-    static std::set<std::string> const extensions = {
-        "asm", // SolidEdge assembly
-        "catpart", // catia part
-        "catproduct", // catia assembly
-        "ifc",
-        "ipt", // inventor
-        "jt",
-        "par", // SolidEdge part
-        "prc", // exchange std
-        "prt", // nx
-        "sat", // acis text
-        "sab", // acis binary
-        "sldprt", // solidworks part
-        "sldasm", // solidworks assembly
-        "step", // step part or assembly
-        "stp", // step part or assembly
-        "u3d"
-    };
-
     auto const extension = GetExtension(pFile);
-    if (std::end(extensions) != extensions.find(extension)) {
+    auto const &enabled_extensions = ExchangeLoaderConfig::instance().GetFileExtensionSet();
+    if (std::end(enabled_extensions) != enabled_extensions.find(extension)) {
         return true;
     }
 
