@@ -338,13 +338,13 @@ void Assimp::ExchangeLoader::InternReadFile(const std::string& pFile, aiScene* p
         if (initialize_status != ExchangeLoaderConfig::InitializeStatus::OK) {
             switch (initialize_status) {
             case ExchangeLoaderConfig::InitializeStatus::FAILURE_LIBRARY_VERSION_MISMATCH:
-                throw new DeadlyImportError("Library version mismatch");
+                throw DeadlyImportError("Library version mismatch");
                 break;
             case ExchangeLoaderConfig::InitializeStatus::FAILURE_LICENSE_INVALID:
-                throw new DeadlyImportError("Invalid license");
+                throw DeadlyImportError("Invalid license");
                 break;
             case ExchangeLoaderConfig::InitializeStatus::FAILURE_LOAD_LIBRARIES:
-                throw new DeadlyImportError("Libraries failed to load");
+                throw DeadlyImportError("Libraries failed to load");
                 break;
             default:
                 break;
@@ -359,7 +359,7 @@ void Assimp::ExchangeLoader::InternReadFile(const std::string& pFile, aiScene* p
     if (A3D_SUCCESS != load_status && A3D_LOAD_MISSING_COMPONENTS != load_status) {
         std::stringstream ss;
         ss << "Failure code: (" << load_status << ") - \"" << A3DMiscGetErrorMsg(load_status) << "\"";
-        throw new DeadlyImportError(ss.str());
+        throw DeadlyImportError(ss.str());
     }
 
     pScene->mRootNode = new aiNode();
