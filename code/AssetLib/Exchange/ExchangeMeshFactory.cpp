@@ -143,9 +143,6 @@ std::vector<aiMesh*> Assimp::ExchangeMeshFactory::createMeshes(ts3d::InstancePat
     auto const ri_style_data = ri_instance.Instance::getNetStyle();
     std::vector<MeshData> mesh_data;
     for (auto topo_face_idx = 0u; topo_face_idx < tess3d->faceSize(); ++topo_face_idx) {
-        if (!ri_instance.getNetShow(topo_face_idx) || ri_instance.getNetRemoved(topo_face_idx)) {
-            continue;
-        }
         auto const face_style_data = ri_instance.getNetStyle(topo_face_idx);        
         auto it = std::find_if(std::begin(mesh_data), std::end(mesh_data), [=](MeshData const &md) {
             return 0 == memcmp(&md.style_data, &face_style_data, sizeof(A3DGraphStyleData));
