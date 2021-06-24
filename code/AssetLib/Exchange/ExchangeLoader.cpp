@@ -363,8 +363,11 @@ void Assimp::ExchangeLoader::InternReadFile(const std::string& pFile, aiScene* p
     }
 
     pScene->mRootNode = new aiNode();
-     if (const char* modelName = ts3d::A3DRootBaseWrapper(model_file)->m_pcName) {
+    if (const char* modelName = ts3d::A3DRootBaseWrapper(model_file)->m_pcName) {
         pScene->mRootNode->mName.Set(modelName);
+    }
+    else {
+        pScene->mRootNode->mName.Set("Root");
     }
 
     ts3d::A3DAsmModelFileWrapper model_file_data(model_file);
