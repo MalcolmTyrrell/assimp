@@ -338,13 +338,13 @@ void Assimp::ExchangeLoader::InternReadFile(const std::string& pFile, aiScene* p
         if (initialize_status != ExchangeLoaderConfig::InitializeStatus::OK) {
             switch (initialize_status) {
             case ExchangeLoaderConfig::InitializeStatus::FAILURE_LIBRARY_VERSION_MISMATCH:
-                throw new DeadlyImportError("Library version mismatch");
+                throw DeadlyImportError("Library version mismatch");
                 break;
             case ExchangeLoaderConfig::InitializeStatus::FAILURE_LICENSE_INVALID:
-                throw new DeadlyImportError("Invalid license");
+                throw DeadlyImportError("Invalid license");
                 break;
             case ExchangeLoaderConfig::InitializeStatus::FAILURE_LOAD_LIBRARIES:
-                throw new DeadlyImportError("Libraries failed to load");
+                throw DeadlyImportError("Libraries failed to load");
                 break;
             default:
                 break;
@@ -359,17 +359,24 @@ void Assimp::ExchangeLoader::InternReadFile(const std::string& pFile, aiScene* p
     if (A3D_SUCCESS != load_status && A3D_LOAD_MISSING_COMPONENTS != load_status) {
         std::stringstream ss;
         ss << "Failure code: (" << load_status << ") - \"" << A3DMiscGetErrorMsg(load_status) << "\"";
-        throw new DeadlyImportError(ss.str());
+        throw DeadlyImportError(ss.str());
     }
 
     pScene->mRootNode = new aiNode();
-    pScene->mRootNode->mName.Set(ts3d::A3DRootBaseWrapper(model_file)->m_pcName);
+    if (const char* modelName = ts3d::A3DRootBaseWrapper(model_file)->m_pcName) {
+        pScene->mRootNode->mName.Set(modelName);
+    }
+    else {
+        pScene->mRootNode->mName.Set("Root");
+    }
 
     ts3d::A3DAsmModelFileWrapper model_file_data(model_file);
     populateMetadata(model_file, pScene->mRootNode);
-    aiMetadata *md = pScene->mRootNode->mMetaData;
+
+    // Scene metadata
+    aiMetadata *md = pScene->mMetaData;
     if (nullptr == md) {
-        md = pScene->mRootNode->mMetaData = new aiMetadata;
+        md = pScene->mMetaData = new aiMetadata;
     }
     auto const unit_factor = ts3d::getUnit(model_file);
     md->Add(METADATA_KEY_UNIT_FACTOR, unit_factor);
