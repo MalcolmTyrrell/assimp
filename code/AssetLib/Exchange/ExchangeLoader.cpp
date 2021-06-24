@@ -363,13 +363,17 @@ void Assimp::ExchangeLoader::InternReadFile(const std::string& pFile, aiScene* p
     }
 
     pScene->mRootNode = new aiNode();
-    pScene->mRootNode->mName.Set(ts3d::A3DRootBaseWrapper(model_file)->m_pcName);
+     if (const char* modelName = ts3d::A3DRootBaseWrapper(model_file)->m_pcName) {
+        pScene->mRootNode->mName.Set(modelName);
+    }
 
     ts3d::A3DAsmModelFileWrapper model_file_data(model_file);
     populateMetadata(model_file, pScene->mRootNode);
-    aiMetadata *md = pScene->mRootNode->mMetaData;
+
+    // Scene metadata
+    aiMetadata *md = pScene->mMetaData;
     if (nullptr == md) {
-        md = pScene->mRootNode->mMetaData = new aiMetadata;
+        md = pScene->mMetaData = new aiMetadata;
     }
     auto const unit_factor = ts3d::getUnit(model_file);
     md->Add(METADATA_KEY_UNIT_FACTOR, unit_factor);
