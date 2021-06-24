@@ -371,8 +371,7 @@ void Assimp::ExchangeLoader::InternReadFile(const std::string& pFile, aiScene* p
     if (nullptr == md) {
         md = pScene->mRootNode->mMetaData = new aiMetadata;
     }
-    A3DDouble unit_factor = 1.0;
-    A3DAsmModelFileGetUnit(model_file, &unit_factor);
+    auto const unit_factor = ts3d::getUnit(model_file);
     md->Add(METADATA_KEY_UNIT_FACTOR, unit_factor);
     md->Add(METADATA_KEY_FORMAT, model_file_data->m_eModellerType);
 
