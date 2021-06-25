@@ -2,15 +2,15 @@
 #include "ExchangeLoaderConfig.hpp"
 
 // static
-Assimp::ExchangeLoaderConfig& Assimp::ExchangeLoaderConfig::instance(void) {
+Assimp::ExchangeLoaderConfig &Assimp::ExchangeLoaderConfig::instance(void) {
     static ExchangeLoaderConfig _instance;
     return _instance;
 }
 
-Assimp::ExchangeLoaderConfig::ExchangeLoaderConfig(void)
- : mInitializeStatus(InitializeStatus::FAILURE_NOT_INITIALIZED),
-    mLoadParameters(GetDefaultLoadParams()),
-    mFileExtensions(GetDefaultFileExtensionSet()) {
+Assimp::ExchangeLoaderConfig::ExchangeLoaderConfig(void) :
+        mInitializeStatus(InitializeStatus::FAILURE_NOT_INITIALIZED),
+        mLoadParameters(GetDefaultLoadParams()),
+        mFileExtensions(GetDefaultFileExtensionSet()) {
     mTextureFolder = getenv("TMP");
     if (mTextureFolder.empty()) {
         mTextureFolder = getenv("TEMP");
@@ -22,7 +22,6 @@ Assimp::ExchangeLoaderConfig::ExchangeLoaderConfig(void)
         mTextureFolder = getenv("TMPDIR");
     }
 }
-
 
 // static
 Assimp::ExchangeLoaderConfig::InitializeStatus Assimp::ExchangeLoaderConfig::Initialize(std::string const &hoops_license) {
@@ -71,15 +70,15 @@ A3DRWParamsLoadData const &Assimp::ExchangeLoaderConfig::GetDefaultLoadParams(vo
     return default_load_params;
 }
 
-A3DRWParamsLoadData const& Assimp::ExchangeLoaderConfig::GetLoadParams(void) const {
+A3DRWParamsLoadData const &Assimp::ExchangeLoaderConfig::GetLoadParams(void) const {
     return mLoadParameters;
 }
 
-void Assimp::ExchangeLoaderConfig::SetLoadParams(A3DRWParamsLoadData const& load_params) {
+void Assimp::ExchangeLoaderConfig::SetLoadParams(A3DRWParamsLoadData const &load_params) {
     mLoadParameters = load_params;
 }
 
-std::string const& Assimp::ExchangeLoaderConfig::GetExchangeLibraryFolder(void) const {
+std::string const &Assimp::ExchangeLoaderConfig::GetExchangeLibraryFolder(void) const {
     return mExchangeLibraryFolder;
 }
 
@@ -87,42 +86,55 @@ void Assimp::ExchangeLoaderConfig::SetExchangeLibraryFolder(std::string const &f
     mExchangeLibraryFolder = folder;
 }
 
-std::string const& Assimp::ExchangeLoaderConfig::GetTextureFolder(void) const {
+std::string const &Assimp::ExchangeLoaderConfig::GetTextureFolder(void) const {
     return mTextureFolder;
 }
 
-void Assimp::ExchangeLoaderConfig::SetTextureFolder(std::string const& folder) {
+void Assimp::ExchangeLoaderConfig::SetTextureFolder(std::string const &folder) {
     mTextureFolder = folder;
 }
 
 // static
 Assimp::ExchangeLoaderConfig::StringSet const &Assimp::ExchangeLoaderConfig::GetDefaultFileExtensionSet(void) {
     static StringSet const extensions = {
-        "asm", // SolidEdge assembly
-        "catpart", // catia part
-        "catproduct", // catia assembly
-        "ifc",
-        "iam", // inventor
-        "ipt", // inventor
-        "jt",
-        "par", // SolidEdge part
+        "3dm", // Rhino
+        // "3mf", // 3MF
+        "3dxml", // catia v6
+        "asm", "neu", "prt", "xas", "xpr", // creo
+        "catdrawing", "catpart", "catproduct", "catshape", "exp", // catia v5
+        "dae", // collada
+        "dwf", "dwfx", // AutoDesk DWF
+        "dwg", "dwf", // AutoCAD 2D, 3D
+        "ifc", "ifczip", // IFC
+        "iam", "ipt", // inventor
+        "igs", "iges", // IGES
+        "mf1", "arc", "unv", "pkg", // I-deas
+        "model", "session", "dlv", "exp", // catia v4
+        "jt", // JT
+        "asm", "par", "pwd", "psm", // SolidEdge
         "prc", // exchange std
-        "prt", // nx
+        "prt" , // nx
+        "rvt", "rfa", // Revit 2
         "sat", // acis text
         "sab", // acis binary
-        "sldprt", // solidworks part
-        "sldasm", // solidworks assembly
-        "step", // step part or assembly
-        "stp", // step part or assembly
-        "u3d"
+        "sldprt", "sldasm", // solidworks 
+        "step", "stp", "stpz", // step part or assembly
+        "stpx", "stpxz", // STEP/XML
+        // "stl", // STL
+        "u3d",
+        "vda",
+        "wrl", "vrml", // VRML
+        // "obj",
+        "x_b", "x_t", "xmt", "xmt_txt", // Parasolid
+        "pdf", // 3D-PDF
     };
     return extensions;
 }
 
-Assimp::ExchangeLoaderConfig::StringSet const& Assimp::ExchangeLoaderConfig::GetFileExtensionSet(void) const {
+Assimp::ExchangeLoaderConfig::StringSet const &Assimp::ExchangeLoaderConfig::GetFileExtensionSet(void) const {
     return mFileExtensions;
 }
 
-void Assimp::ExchangeLoaderConfig::SetFileExtensionSet(StringSet const& extensions) {
+void Assimp::ExchangeLoaderConfig::SetFileExtensionSet(StringSet const &extensions) {
     mFileExtensions = extensions;
 }
