@@ -43,6 +43,7 @@ INCLUDE_DIRECTORIES(
   ${Assimp_SOURCE_DIR}/include
   ${Assimp_SOURCE_DIR}/code
   ${Assimp_BINARY_DIR}/tools/assimp_cmd
+  $ENV{HOOPS_EXCHANGE_INCLUDE_PATH}
 )
 
 LINK_DIRECTORIES( ${Assimp_BINARY_DIR} ${Assimp_BINARY_DIR}/lib )

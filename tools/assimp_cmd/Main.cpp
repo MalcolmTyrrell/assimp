@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "Main.h"
-
+#include "AssetLib/Exchange/ExchangeLoaderConfig.hpp"
 const char* AICMD_MSG_ABOUT = 
 "------------------------------------------------------ \n"
 "Open Asset Import Library (\"Assimp\", https://github.com/assimp/assimp) \n"
@@ -118,6 +118,19 @@ int main (int argc, char* argv[])
 	if (! strcmp(argv[1], "cmpdump")) {
 		return Assimp_CompareDump (&argv[2],argc-2);
 	}
+
+#ifndef ASSIMP_BUILD_NO_EXCHANGE_IMPORTER
+	// Obtain the folder containing the required dynamic libraries
+	// from a command line option, environment variable, application settings
+	// or use a path relative to the pwd. If left unset, the system will look
+	// in "." and "PATH".
+	Assimp::ExchangeLoaderConfig::instance().SetExchangeLibraryFolder("X:\\HOOPS_Exchange_Publish_2021\\bin\\win64_v140");
+
+	// Optional - configure any non-default import options
+    auto load_params = Assimp::ExchangeLoaderConfig::instance().GetLoadParams();
+    load_params.m_sGeneral.m_bReadSolids = true;  // (defaults to true already, just an example)
+    Assimp::ExchangeLoaderConfig::instance().SetLoadParams(load_params);
+#endif
 
 	// construct global importer and exporter instances
 	Assimp::Importer imp;

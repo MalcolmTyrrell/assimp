@@ -296,6 +296,22 @@ SET(ASSIMP_EXPORTER_SRCS "")
 SET(ASSIMP_EXPORTERS_ENABLED "") # list of enabled exporters
 SET(ASSIMP_EXPORTERS_DISABLED "") # disabled exporters list (used to print)
 
+IF(DEFINED ENV{HOOPS_EXCHANGE_INCLUDE_PATH})
+  INCLUDE_DIRECTORIES($ENV{HOOPS_EXCHANGE_INCLUDE_PATH})
+  ADD_ASSIMP_IMPORTER( Exchange
+     AssetLib/Exchange/ExchangeLoader.hpp
+     AssetLib/Exchange/ExchangeLoader.cpp
+     AssetLib/Exchange/ExchangeLoaderConfig.hpp
+     AssetLib/Exchange/ExchangeLoaderConfig.cpp
+     AssetLib/Exchange/ExchangeMaterialLoader.hpp
+     AssetLib/Exchange/ExchangeMaterialLoader.cpp
+     AssetLib/Exchange/ExchangeMeshFactory.hpp
+     AssetLib/Exchange/ExchangeMeshFactory.cpp
+  )
+ELSE()
+  message("Skipping support for HOOPS Exchange. To enable, set the environment variable HOOPS_EXCHANGE_INCLUDE_PATH.")
+ENDIF()
+
 ADD_ASSIMP_IMPORTER( AMF
   AssetLib/AMF/AMFImporter.hpp
   AssetLib/AMF/AMFImporter_Node.hpp
